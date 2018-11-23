@@ -101,36 +101,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         return true;
                     }
                 });
-        bluetoothSocket = connectToIntelliRoast();
-        if (bluetoothSocket != null) {
-            try {
-                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(bluetoothSocket.getOutputStream(), "ASCII"));
-                writer.write(connected);
-                writer.flush();
-            } catch (IOException ex) {
 
-            }
-
-            CharBuffer cb = CharBuffer.allocate(100);
-            String output = "";
-            try {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(bluetoothSocket.getInputStream(), "ASCII"));
-                while (reader.ready()) {
-                    reader.read(cb);
-                    cb.flip();
-                    output = cb.toString();
-                }
-            } catch (IOException ex) {
-                return;
-            }
-            if (output.contains("Ack")) {
-                isConnected = true;
-                showToast("Connected to IntelliRoast");
-            } else {
-                isConnected = true;
-                showToast("Error connecting to IntelliRoast");
-            }
-        }
 
         chooseLightRoast.setOnClickListener(this);
         chooseMediumRoast.setOnClickListener(this);
@@ -186,8 +157,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 writer.flush();
                 showToast(roastType + " Profile Loaded!");
             } catch (IOException ex) {
+                isConnected = false;
                 showToast("Could not send Profile");
             }
+        } else {
+            showToast("Bluetooth not connected");
         }
     }
 
@@ -200,6 +174,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     writer.flush();
                     showToast("Starting " + roastType + " Roast!");
                 } catch (IOException ex) {
+                    isConnected = false;
                     showToast("Could not send Profile");
                 }
             } else {
@@ -210,8 +185,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    // Set up Bluetooth connection, called from sidebar
+    // Set up Bluetooth connection
     public BluetoothSocket connectToIntelliRoast() {
+        if (isConnected && bluetoothSocket != null) {
+            showToast("Already connected to IntelliRoast");
+            return bluetoothSocket;
+        }
+        if (bluetoothSocket != null) {
+            try {
+                bluetoothSocket.close();
+            } catch (Exception e) {
+                isConnected = false;
+                showToast("Something broke!");
+                return null;
+            }
+            bluetoothSocket = null;
+        }
         BluetoothDevice bluetoothDevice = null;
         Set<BluetoothDevice> bondedDevices = bluetoothAdapter.getBondedDevices();
         for (BluetoothDevice dev : bondedDevices) {
@@ -221,7 +210,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
         if (bluetoothDevice == null) {
-            showToast("Target Bluetooth device is not found.");
+            showToast("IntelliRoast is not found. Is your Bluetooth on?");
+            isConnected = false;
             return null;
         }
 
@@ -230,15 +220,48 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(sppUuid);
         } catch (IOException ex) {
             showToast("Failed to connect: " + ex.toString());
+            isConnected = false;
             return null;
         }
 
         try {
             bluetoothSocket.connect();
         } catch (IOException ex) {
-            showToast("Failed to connect: " + ex.toString());
+            isConnected = false;
+            showToast("Error connecting to IntelliRoast. Are you too far away?");
             return null;
         }
+        try {
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(bluetoothSocket.getOutputStream(), "ASCII"));
+            writer.write(connected);
+            writer.flush();
+        } catch (IOException ex) {
+            isConnected = false;
+            showToast("Error communicating with IntelliRoast. Are you too far away?");
+            return null;
+        }
+
+        CharBuffer cb = CharBuffer.allocate(100);
+        String output = "";
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(bluetoothSocket.getInputStream(), "ASCII"));
+            while (reader.ready()) {
+                reader.read(cb);
+                cb.flip();
+                output = cb.toString();
+            }
+        } catch (IOException ex) {
+            isConnected = false;
+            showToast("Error communicating with IntelliRoast. Are you too far away?");
+            return null;
+        }
+//            if (output.contains("Ack")) {
+        isConnected = true;
+        showToast("Connected to IntelliRoast");
+//            } else {
+//                isConnected = false;
+//                showToast("Error connecting to IntelliRoast");
+//            }
         return bluetoothSocket;
     }
 
@@ -256,11 +279,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
 
-//    @Override
-//    public void onResume(){
-//        super.onResume();
-//        if (bluetoothSocket == null) {
-//            bluetoothSocket = connectToIntelliRoast();
-//        }
-//    }
+    @Override
+    public void onResume(){
+        super.onResume();
+        if (!bluetoothAdapter.isEnabled()) {
+            bluetoothSocket = null;
+            isConnected = false;
+            showToast("Uh oh! Please turn on your Bluetooth for IntelliRoast to work!");
+        } else {
+            bluetoothSocket = connectToIntelliRoast();
+        }
+    }
 }
