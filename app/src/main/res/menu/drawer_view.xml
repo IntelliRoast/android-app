@@ -6,5 +6,9 @@
             android:id="@+id/menu_connect"
             android:checkable="false"
             android:title="@string/connect" />
+        <item
+            android:id="@+id/menu_eject"
+            android:checkable="false"
+            android:title="@string/eject" />
     </group>
 </menu>

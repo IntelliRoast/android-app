@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     final String connected = "{\"cmd\":\"Connected\"}";
     final String connectedAck = "{\"cmd\":\"Ack\",\"state\":\"Idle\"}";
     final String startCommand = "{\"cmd\":\"Start\"}";
+    final String ejectCommand = "{\"cmd\":\"Eject\"}";
 
     private DrawerLayout mDrawerLayout;
 
@@ -95,6 +96,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         switch (menuItem.getItemId()) {
                             case R.id.menu_connect:
                                 connectToIntelliRoast();
+                                return true;
+                            case R.id.menu_eject:
+                                ejectBeans();
                                 return true;
                         }
 
@@ -263,6 +267,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                showToast("Error connecting to IntelliRoast");
 //            }
         return bluetoothSocket;
+    }
+
+    public void ejectBeans() {
+        if (bluetoothSocket != null) {
+            try {
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(bluetoothSocket.getOutputStream(), "ASCII"));
+                writer.write(ejectCommand);
+                writer.flush();
+                showToast("Ejecting beans");
+            } catch (IOException ex) {
+                isConnected = false;
+                showToast("Error communicating with IntelliRoast. Try re-connecting.");
+            }
+        } else {
+            showToast("Bluetooth not connected");
+        }
     }
 
     @Override
