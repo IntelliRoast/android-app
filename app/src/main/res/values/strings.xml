@@ -1,0 +1,35 @@
+<resources>
+    <string name="app_name">IntelliRoast</string>
+    <string name="lightRoast">Light Roast</string>
+    <string name="mediumRoast">Medium Roast</string>
+    <string name="darkRoast">Dark Roast</string>
+    <string name="select">Choose</string>
+    <string name="lightRoastDescription">Light roasts are light brown in color, with a light body
+        and no oil on the surface of the beans. Light roasts have a toasted grain taste and pronounced
+        acidity. The origin flavors of the bean are retained to a greater extent than in darker
+        roasted coffees. Light roasts also retain most of the caffeine from the coffee bean. Some
+        common roast names within the Light Roast category are Light City, Half City, Cinnamon Roast
+        (roasted to just before first crack), and New England Roast (a popular roast in the northeastern
+        United States, roasted to first crack).</string>
+    <string name="mediumRoastDescription">Medium roasted coffees are medium brown in color with more
+        body than light roasts. Like the lighter roasts, they have no oil on the bean surfaces.
+        However, medium roasts lack the grainy taste of the light roasts, exhibiting more balanced
+        flavor, aroma, and acidity. Caffeine is somewhat decreased, but there is more caffeine than
+        in darker roasts. Common roast names within the Medium Roast level include Regular Roast,
+        American Roast (the traditional roast in the eastern United States, roasted to the end of the
+        first crack), City Roast (medium brown, a typical roast throughout the United States), and
+        Breakfast Roast.</string>
+    <string name="darkRoastDescription">Dark roasted coffees are dark brown in color, like chocolate,
+        or sometimes almost black. They have a sheen of oil on the surface, which is usually evident
+        in the cup when the dark roast coffee is brewed. The coffee’s origin flavors are eclipsed by
+        the flavors of the roasting process. The coffee will generally have a bitter and smoky or even
+        burnt taste. The amount of caffeine is substantially decreased. Some of the more popular
+        designations for a dark roast include French Roast, Italian Roast, Espresso Roast, Continental
+        Roast, New Orleans Roast, and Spanish Roast. Many dark roasts are used for espresso blends.</string>
+    <string name="settings">Settings</string>
+    <string name="on">On</string>
+    <string name="off">Off</string>
+    <string name="disc">Discoverable</string>
+    <string name="paired">Get Paired Devices</string>
+    <string name="connect">Connect to IntelliRoast</string>
+</resources>
