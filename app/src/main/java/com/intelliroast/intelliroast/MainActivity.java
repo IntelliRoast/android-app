@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     final String connected = "{\"cmd\":\"Connected\"}";
     final String connectedAck = "{\"cmd\":\"Ack\",\"state\":\"Idle\"}";
     final String startCommand = "{\"cmd\":\"Start\"}";
+    final String stopCommand = "{\"cmd\":\"Stop\"}";
     final String ejectCommand = "{\"cmd\":\"Eject\"}";
 
     private DrawerLayout mDrawerLayout;
@@ -97,8 +98,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             case R.id.menu_connect:
                                 connectToIntelliRoast();
                                 return true;
+                            case R.id.menu_disconnect:
+                                disconnectFromIntelliRoast();
                             case R.id.menu_eject:
                                 ejectBeans();
+                                return true;
+                            case R.id.stop_roast:
+                                stopRoast();
                                 return true;
                         }
 
@@ -208,7 +214,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         BluetoothDevice bluetoothDevice = null;
         Set<BluetoothDevice> bondedDevices = bluetoothAdapter.getBondedDevices();
         for (BluetoothDevice dev : bondedDevices) {
-            if (dev.getName().equals("IntelliRoast")) {
+            if (dev.getName().equals("DSD TECH HC-05")) {
                 bluetoothDevice = dev;
                 break;
             }
@@ -249,24 +255,49 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         String output = "";
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(bluetoothSocket.getInputStream(), "ASCII"));
-            while (reader.ready()) {
-                reader.read(cb);
-                cb.flip();
-                output = cb.toString();
+            int readerCounter = 0;
+            while (true) {
+                try {
+                    readerCounter++;
+                    Thread.sleep(250);
+                    if (reader.ready()) {
+                        reader.read(cb);
+                        cb.flip();
+                        output = cb.toString();
+                        break;
+                    }
+                    if (readerCounter > 5) {
+                        break;
+                    }
+                } catch (InterruptedException ex) {
+                    break;
+                }
             }
         } catch (IOException ex) {
             isConnected = false;
             showToast("Error communicating with IntelliRoast. Are you too far away?");
             return null;
         }
-//            if (output.contains("Ack")) {
-        isConnected = true;
-        showToast("Connected to IntelliRoast");
-//            } else {
-//                isConnected = false;
-//                showToast("Error connecting to IntelliRoast");
-//            }
+            if (!output.isEmpty()) {
+                isConnected = true;
+                showToast("Connected to IntelliRoast");
+            } else {
+                isConnected = false;
+                showToast("Error connecting to IntelliRoast");
+            }
         return bluetoothSocket;
+    }
+
+    public void disconnectFromIntelliRoast() {
+        if (bluetoothSocket != null) {
+            try {
+                bluetoothSocket.close();
+                showToast("Successfully Disconnected");
+            } catch (Exception e) {
+                showToast("Bluetooth not connected");
+            }
+            bluetoothSocket = null;
+        }
     }
 
     public void ejectBeans() {
@@ -276,6 +307,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 writer.write(ejectCommand);
                 writer.flush();
                 showToast("Ejecting beans");
+            } catch (IOException ex) {
+                isConnected = false;
+                showToast("Error communicating with IntelliRoast. Try re-connecting.");
+            }
+        } else {
+            showToast("Bluetooth not connected");
+        }
+    }
+
+    public void stopRoast() {
+        if (bluetoothSocket != null) {
+            try {
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(bluetoothSocket.getOutputStream(), "ASCII"));
+                writer.write(stopCommand);
+                writer.flush();
+                showToast("Stopping the current roast");
             } catch (IOException ex) {
                 isConnected = false;
                 showToast("Error communicating with IntelliRoast. Try re-connecting.");

@@ -32,5 +32,10 @@
     <string name="disc">Discoverable</string>
     <string name="paired">Get Paired Devices</string>
     <string name="connect">Connect to IntelliRoast</string>
+    <string name="disconnect">Disconnect from IntelliRoast</string>
     <string name="eject">Eject beans (emergency use only)</string>
+    <string name="stopRoast">Stop and cool down the current roast</string>
+    <string name="devOptions">Development Options</string>
+    <string name="devOptionsDescription">Below are current roast readings. You can also manually
+        adjust fan speed and heating element power.</string>
 </resources>

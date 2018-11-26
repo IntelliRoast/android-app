@@ -10,5 +10,17 @@
             android:id="@+id/menu_eject"
             android:checkable="false"
             android:title="@string/eject" />
+        <item
+            android:id="@+id/stop_roast"
+            android:checkable="false"
+            android:title="@string/stopRoast" />
+        <item
+            android:id="@+id/menu_disconnect"
+            android:checkable="false"
+            android:title="@string/disconnect" />
+        <item
+            android:id="@+id/menu_dev"
+            android:checkable="false"
+            android:title="@string/devOptions" />
     </group>
 </menu>
