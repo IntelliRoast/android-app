@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.content.Intent;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -87,27 +88,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 new NavigationView.OnNavigationItemSelectedListener() {
                     @Override
                     public boolean onNavigationItemSelected(MenuItem menuItem) {
-                        // set item as selected to persist highlight
-//                        menuItem.setChecked(true);
-                        // close drawer when item is tapped
-//                        mDrawerLayout.closeDrawers();
-
-                        // Add code here to update the UI based on the item selected
-                        // For example, swap UI fragments here
                         switch (menuItem.getItemId()) {
                             case R.id.menu_connect:
                                 connectToIntelliRoast();
                                 return true;
                             case R.id.menu_disconnect:
                                 disconnectFromIntelliRoast();
+                                return true;
                             case R.id.menu_eject:
                                 ejectBeans();
                                 return true;
                             case R.id.stop_roast:
                                 stopRoast();
                                 return true;
+                            case R.id.menu_dev:
+                                openDevOptions();
+                                return true;
                         }
-
                         return true;
                     }
                 });
@@ -214,7 +211,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         BluetoothDevice bluetoothDevice = null;
         Set<BluetoothDevice> bondedDevices = bluetoothAdapter.getBondedDevices();
         for (BluetoothDevice dev : bondedDevices) {
-            if (dev.getName().equals("DSD TECH HC-05")) {
+            if (dev.getName().equals("IntelliRoast")) {
                 bluetoothDevice = dev;
                 break;
             }
@@ -330,6 +327,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } else {
             showToast("Bluetooth not connected");
         }
+    }
+
+    public void openDevOptions() {
+        Intent intent = new Intent(this, DevActivity.class);
+        startActivity(intent);
     }
 
     @Override
