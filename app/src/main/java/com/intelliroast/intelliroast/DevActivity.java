@@ -9,6 +9,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 
 public class DevActivity extends AppCompatActivity implements View.OnClickListener {
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,5 +48,10 @@ public class DevActivity extends AppCompatActivity implements View.OnClickListen
     public void goBackHome() {
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
+    }
+
+    //toast message function
+    private void showToast(String msg){
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
 }
