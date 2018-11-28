@@ -151,17 +151,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Log.d(TAG, message);
 
                 // Convert to JSON
-                JSONObject messageReceived;
-                try {
-                    if (message.contains("\"BT\"")) {
-                        messageReceived = new JSONObject(message);
-                        beanTemp = (String) messageReceived.get("BT");
-                        // This doesn't work >:(
-//                        DevActivity.updateBeanTemp("Bean Temp: " + beanTemp);
-                    }
-                } catch (org.json.JSONException ex) {
-                    return;
-                }
+//                JSONObject messageReceived;
+//                try {
+//                    if (message.contains("\"BT\"")) {
+//                        messageReceived = new JSONObject(message);
+//                        beanTemp = (String) messageReceived.get("BT");
+//                        // This doesn't work >:(
+////                        DevActivity.updateBeanTemp("Bean Temp: " + beanTemp);
+//                    }
+//                } catch (org.json.JSONException ex) {
+//                    return;
+//                }
 
 
             }

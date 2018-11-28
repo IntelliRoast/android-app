@@ -13,7 +13,7 @@ import java.util.UUID;
 public class BluetoothClient extends Thread {
     private static final String TAG = "BT_CLIENT";
     private static final UUID serialUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    final String connectedString = "{\"cmd\":\"Connected\"}";
+    private static final String connectedString = "{\"cmd\":\"Connected\"}";
 
     private Handler handler;
     private BluetoothSocket socket;
