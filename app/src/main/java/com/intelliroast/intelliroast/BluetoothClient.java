@@ -13,6 +13,7 @@ import java.util.UUID;
 public class BluetoothClient extends Thread {
     private static final String TAG = "BT_CLIENT";
     private static final UUID serialUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    final String connectedString = "{\"cmd\":\"Connected\"}";
 
     private Handler handler;
     private BluetoothSocket socket;
@@ -39,7 +40,6 @@ public class BluetoothClient extends Thread {
         bluetoothAdapter.cancelDiscovery();
         try {
             socket.connect();
-            MainActivity.isConnected = true;
         } catch (IOException connectException) {
             try {
                 Message readMsg = handler.obtainMessage(MessageType.CONNECTION_FAILED, -1, -1, null);
@@ -53,9 +53,11 @@ public class BluetoothClient extends Thread {
         }
         connection = new BluetoothConnection(socket, handler);
         connection.start();
+        write(connectedString.getBytes());
 
         Message readMsg = handler.obtainMessage(MessageType.CONNECTION_SUCCEEDED, -1, -1, null);
         readMsg.sendToTarget();
+        MainActivity.isConnected = true;
     }
 
     void write(byte[] bytes) {

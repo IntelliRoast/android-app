@@ -21,6 +21,7 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONObject;
@@ -40,6 +41,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    private static final String TAG = "MainUI";
     private BluetoothClient client;
 
     private static final int REQUEST_ENABLE_BT = 1;
@@ -58,10 +60,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button chooseMediumRoast;
     Button chooseDarkRoast;
     FloatingActionButton startRoast;
+    TextView mBeanTemp;
 
     public static Boolean isConnected = false;
 
     public String roastType = "Medium";
+
+    public static String beanTemp = "";
 
 
     @Override
@@ -82,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         chooseMediumRoast = findViewById(R.id.doMedium);
         chooseDarkRoast = findViewById(R.id.doDark);
         startRoast = findViewById(R.id.startRoast);
+        mBeanTemp = findViewById(R.id.bean_temp);
 
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(
@@ -137,17 +143,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 showToast("Disconnected");
             }
             else if (msg.what == BluetoothConnection.MessageType.READ) {
-                byte[] readBuf = (byte[]) msg.obj;
-                String message = new String(readBuf, 0, msg.arg1);
+//                byte[] readBuf = (byte[]) msg.obj;
+//                String message = new String(readBuf, 0, msg.arg1);
+//                CharBuffer readBuf = (CharBuffer) msg.obj;
+//                String message = readBuf.toString();
+                String message = (String) msg.obj;
+                Log.d(TAG, message);
 
                 // Convert to JSON
                 JSONObject messageReceived;
                 try {
-                    messageReceived = new JSONObject(message);
-                    switch ((String) messageReceived.get("state")) {
-                        case "Roasting":
-                            showToast((String) messageReceived.get("T"));
-                            return;
+                    if (message.contains("\"BT\"")) {
+                        messageReceived = new JSONObject(message);
+                        beanTemp = (String) messageReceived.get("BT");
+                        // This doesn't work >:(
+//                        DevActivity.updateBeanTemp("Bean Temp: " + beanTemp);
                     }
                 } catch (org.json.JSONException ex) {
                     return;
@@ -180,7 +190,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.startRoast:
                 // Start roast
-                loadRoast(roastType);
+                client.write(startCommand.getBytes());
+                showToast("Starting " + roastType + " Roast!");
         }
         //Your Logic
     }
@@ -210,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
         }
         client.write(roastProfile.getBytes());
-        showToast("Starting " + roastType + " Roast!");
+        showToast(roastType + " Roast Loaded");
     }
 
     // Set up Bluetooth connection
@@ -287,4 +298,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void showToast(String msg){
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
+
+    @Override
+    protected void onDestroy() {
+        client.cancel();
+        super.onDestroy();
+    }
+
 }

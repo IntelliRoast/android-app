@@ -9,13 +9,20 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONObject;
 
+import static com.intelliroast.intelliroast.MainActivity.beanTemp;
+
 public class DevActivity extends AppCompatActivity implements View.OnClickListener {
+    private static final String TAG = "DevUI";
+    DrawerLayout mDrawerLayout;
+    TextView mBeanTemp;
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.dev_options);
@@ -26,9 +33,9 @@ public class DevActivity extends AppCompatActivity implements View.OnClickListen
         actionbar.setDisplayHomeAsUpEnabled(true);
         actionbar.setHomeAsUpIndicator(R.drawable.ic_back);
 
-        DrawerLayout mDrawerLayout;
 
         mDrawerLayout = findViewById(R.id.drawer_layout);
+        mBeanTemp = findViewById(R.id.bean_temp);
 
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(
@@ -41,46 +48,8 @@ public class DevActivity extends AppCompatActivity implements View.OnClickListen
                 });
     }
 
-    public static class ConnectionHandler extends Handler {
-        private MainActivity activity;
-        ConnectionHandler(MainActivity displayActivity) {
-            activity = displayActivity;
-        }
-        @Override
-        public void handleMessage(Message msg) {
-            if (msg.what == BluetoothClient.MessageType.CONNECTION_FAILED) {
-                showToast("Bluetooth failed to connect to IntelliRoast");
-            }
-            else if (msg.what == BluetoothClient.MessageType.CONNECTION_SUCCEEDED) {
-                showToast("Connected to IntelliRoast");
-            }
-            else if (msg.what == BluetoothConnection.MessageType.DISCONNECTED) {
-                showToast("Disconnected");
-            }
-            else if (msg.what == BluetoothConnection.MessageType.READ) {
-                byte[] readBuf = (byte[]) msg.obj;
-                String message = new String(readBuf, 0, msg.arg1);
-
-                // Convert to JSON
-                JSONObject messageReceived;
-                try {
-                    messageReceived = new JSONObject(message);
-                    switch ((String) messageReceived.get("state")) {
-                        case "Roasting":
-                            showToast((String) messageReceived.get("BT"));
-                            return;
-                    }
-                } catch (org.json.JSONException ex) {
-                    return;
-                }
-
-
-            }
-        }
-        //toast message function
-        private void showToast(String msg){
-            Toast.makeText(activity, msg, Toast.LENGTH_LONG).show();
-        }
+    public void updateBeanTemp(String text) {
+        mBeanTemp.setText(text);
     }
 
     @Override
