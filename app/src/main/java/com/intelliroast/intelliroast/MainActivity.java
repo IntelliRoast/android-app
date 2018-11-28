@@ -5,11 +5,14 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Message;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
@@ -19,6 +22,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
+
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -35,7 +40,9 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    private BluetoothClient client;
 
+    private static final int REQUEST_ENABLE_BT = 1;
     final UUID sppUuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     final String connected = "{\"cmd\":\"Connected\"}";
     final String connectedAck = "{\"cmd\":\"Ack\",\"state\":\"Idle\"}";
@@ -46,7 +53,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private DrawerLayout mDrawerLayout;
 
     BluetoothAdapter bluetoothAdapter;
-    public BluetoothSocket bluetoothSocket;
 
     Button chooseLightRoast;
     Button chooseMediumRoast;
@@ -55,7 +61,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     Boolean isConnected = false;
 
-    public String roastProfile = "{\"cmd\":\"Load\",\"default\":2}";
     public String roastType = "Medium";
 
 
@@ -64,12 +69,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
-        if (bluetoothAdapter == null) {
-            showToast("Bluetooth not supported!");
-            finish();
-        }
+        connectToIntelliRoast();
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -116,217 +116,157 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         startRoast.setOnClickListener(this);
     }
 
+    public static class ConnectionHandler extends Handler {
+        private MainActivity activity;
+        ConnectionHandler(MainActivity displayActivity) {
+            activity = displayActivity;
+        }
+        @Override
+        public void handleMessage(Message msg) {
+            if (msg.what == BluetoothClient.MessageType.CONNECTION_FAILED) {
+                showToast("Bluetooth failed to connect to IntelliRoast");
+            }
+            else if (msg.what == BluetoothClient.MessageType.CONNECTION_SUCCEEDED) {
+                showToast("Connected to IntelliRoast");
+            }
+            else if (msg.what == BluetoothConnection.MessageType.DISCONNECTED) {
+                showToast("Disconnected");
+            }
+            else if (msg.what == BluetoothConnection.MessageType.READ) {
+                byte[] readBuf = (byte[]) msg.obj;
+                String message = new String(readBuf, 0, msg.arg1);
+
+                // Convert to JSON
+                JSONObject messageReceived;
+                try {
+                    messageReceived = new JSONObject(message);
+                    switch ((String) messageReceived.get("state")) {
+                        case "Roasting":
+                            showToast((String) messageReceived.get("T"));
+                            return;
+                    }
+                } catch (org.json.JSONException ex) {
+                    return;
+                }
+
+
+            }
+        }
+        //toast message function
+        private void showToast(String msg){
+            Toast.makeText(activity, msg, Toast.LENGTH_LONG).show();
+        }
+    }
+
+
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.doLight:
                 // Load Light Roast
-                loadRoast("light");
+                loadRoast("Light");
                 break;
             case R.id.doMedium:
                 // Load Medium Roast
-                loadRoast("medium");
+                loadRoast("Medium");
                 break;
             case R.id.doDark:
                 // Load Dark Roast
-                loadRoast("dark");
+                loadRoast("Dark");
                 break;
             case R.id.startRoast:
                 // Start roast
-                beginRoast();
+                loadRoast(roastType);
         }
         //Your Logic
     }
 
     public void loadRoast(String type) {
+        if (!isConnected) {
+            showToast("Not connected to IntelliRoast");
+            return;
+        }
         String roastProfile;
         switch (type) {
-            case "light":
-                roastType = "Light";
+            case "Light":
+                roastType = type;
                 roastProfile = "{\"cmd\":\"Load\",\"default\":1}";
                 break;
-            case "medium":
-                roastType = "Medium";
+            case "Medium":
+                roastType = type;
                 roastProfile = "{\"cmd\":\"Load\",\"default\":2}";
                 break;
-            case "dark":
-                roastType = "Dark";
+            case "Dark":
+                roastType = type;
                 roastProfile = "{\"cmd\":\"Load\",\"default\":3}";
                 break;
             default:
-                roastProfile = "Something broke!!!";
+                roastType = "Medium";
+                roastProfile = "{\"cmd\":\"Load\",\"default\":2}";
                 break;
         }
-        if (bluetoothSocket != null) {
-            try {
-                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(bluetoothSocket.getOutputStream(), "ASCII"));
-                writer.write(roastProfile);
-                writer.flush();
-                showToast(roastType + " Profile Loaded!");
-            } catch (IOException ex) {
-                isConnected = false;
-                showToast("Could not send Profile");
-            }
-        } else {
-            showToast("Bluetooth not connected");
-        }
-    }
-
-    public void beginRoast() {
-        if (roastProfile != "") {
-            if (bluetoothSocket != null) {
-                try {
-                    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(bluetoothSocket.getOutputStream(), "ASCII"));
-                    writer.write(startCommand);
-                    writer.flush();
-                    showToast("Starting " + roastType + " Roast!");
-                } catch (IOException ex) {
-                    isConnected = false;
-                    showToast("Could not send Profile");
-                }
-            } else {
-                showToast("Bluetooth not connected");
-            }
-        } else {
-            showToast("Please select a roast first!");
-        }
+        client.write(roastProfile.getBytes());
+        showToast("Starting " + roastType + " Roast!");
     }
 
     // Set up Bluetooth connection
-    public BluetoothSocket connectToIntelliRoast() {
-        if (isConnected && bluetoothSocket != null) {
-            showToast("Already connected to IntelliRoast");
-            return bluetoothSocket;
-        }
-        if (bluetoothSocket != null) {
-            try {
-                bluetoothSocket.close();
-            } catch (Exception e) {
-                isConnected = false;
-                showToast("Something broke!");
-                return null;
+    public void connectToIntelliRoast() {
+        if (!bluetoothAdapter.isEnabled()) {
+            isConnected = false;
+            showToast("Uh oh! Please turn on your Bluetooth for IntelliRoast to work!");
+        } else {
+            bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+            if (bluetoothAdapter == null) {
+                showToast("Bluetooth is not supported on this device!");
+                finish();
             }
-            bluetoothSocket = null;
-        }
-        BluetoothDevice bluetoothDevice = null;
-        Set<BluetoothDevice> bondedDevices = bluetoothAdapter.getBondedDevices();
-        for (BluetoothDevice dev : bondedDevices) {
-            if (dev.getName().equals("IntelliRoast")) {
-                bluetoothDevice = dev;
-                break;
-            }
-        }
-        if (bluetoothDevice == null) {
-            showToast("IntelliRoast is not found. Is your Bluetooth on?");
-            isConnected = false;
-            return null;
-        }
 
-        BluetoothSocket bluetoothSocket;
-        try {
-            bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(sppUuid);
-        } catch (IOException ex) {
-            showToast("Failed to connect: " + ex.toString());
-            isConnected = false;
-            return null;
-        }
-
-        try {
-            bluetoothSocket.connect();
-        } catch (IOException ex) {
-            isConnected = false;
-            showToast("Error connecting to IntelliRoast. Are you too far away?");
-            return null;
-        }
-        try {
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(bluetoothSocket.getOutputStream(), "ASCII"));
-            writer.write(connected);
-            writer.flush();
-        } catch (IOException ex) {
-            isConnected = false;
-            showToast("Error communicating with IntelliRoast. Are you too far away?");
-            return null;
-        }
-
-        CharBuffer cb = CharBuffer.allocate(100);
-        String output = "";
-        try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(bluetoothSocket.getInputStream(), "ASCII"));
-            int readerCounter = 0;
-            while (true) {
-                try {
-                    readerCounter++;
-                    Thread.sleep(250);
-                    if (reader.ready()) {
-                        reader.read(cb);
-                        cb.flip();
-                        output = cb.toString();
-                        break;
-                    }
-                    if (readerCounter > 5) {
-                        break;
-                    }
-                } catch (InterruptedException ex) {
+            Handler handler = new ConnectionHandler(this);
+            BluetoothDevice bluetoothDevice = null;
+            Set<BluetoothDevice> bondedDevices = bluetoothAdapter.getBondedDevices();
+            for (BluetoothDevice dev : bondedDevices) {
+                if (dev.getName().equals("IntelliRoast")) {
+                    bluetoothDevice = dev;
                     break;
                 }
             }
-        } catch (IOException ex) {
-            isConnected = false;
-            showToast("Error communicating with IntelliRoast. Are you too far away?");
-            return null;
-        }
-            if (!output.isEmpty()) {
-                isConnected = true;
-                showToast("Connected to IntelliRoast");
-            } else {
+            if (bluetoothDevice == null) {
+                showToast("IntelliRoast is not found. Is your Bluetooth on?");
                 isConnected = false;
-                showToast("Error connecting to IntelliRoast");
+            } else {
+                client = new BluetoothClient(bluetoothDevice, handler);
+                client.start();
+                isConnected = true;
             }
-        return bluetoothSocket;
+        }
     }
 
     public void disconnectFromIntelliRoast() {
-        if (bluetoothSocket != null) {
-            try {
-                bluetoothSocket.close();
-                showToast("Successfully Disconnected");
-            } catch (Exception e) {
-                showToast("Bluetooth not connected");
-            }
-            bluetoothSocket = null;
+        if (!isConnected) {
+            showToast("Not connected to IntelliRoast");
+            return;
         }
+        client.cancel();
+        showToast("Connection closed");
     }
 
     public void ejectBeans() {
-        if (bluetoothSocket != null) {
-            try {
-                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(bluetoothSocket.getOutputStream(), "ASCII"));
-                writer.write(ejectCommand);
-                writer.flush();
-                showToast("Ejecting beans");
-            } catch (IOException ex) {
-                isConnected = false;
-                showToast("Error communicating with IntelliRoast. Try re-connecting.");
-            }
-        } else {
-            showToast("Bluetooth not connected");
+        if (!isConnected) {
+            showToast("Not connected to IntelliRoast");
+            return;
         }
+        showToast("Ejecting beans");
+        client.write(ejectCommand.getBytes());
     }
 
     public void stopRoast() {
-        if (bluetoothSocket != null) {
-            try {
-                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(bluetoothSocket.getOutputStream(), "ASCII"));
-                writer.write(stopCommand);
-                writer.flush();
-                showToast("Stopping the current roast");
-            } catch (IOException ex) {
-                isConnected = false;
-                showToast("Error communicating with IntelliRoast. Try re-connecting.");
-            }
-        } else {
-            showToast("Bluetooth not connected");
+        if (!isConnected) {
+            showToast("Not connected to IntelliRoast");
+            return;
         }
+        showToast("Stopping the current roast");
+        client.write(stopCommand.getBytes());
     }
 
     public void openDevOptions() {
@@ -346,17 +286,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //toast message function
     private void showToast(String msg){
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
-    }
-
-    @Override
-    public void onResume(){
-        super.onResume();
-        if (!bluetoothAdapter.isEnabled()) {
-            bluetoothSocket = null;
-            isConnected = false;
-            showToast("Uh oh! Please turn on your Bluetooth for IntelliRoast to work!");
-        } else {
-            bluetoothSocket = connectToIntelliRoast();
-        }
     }
 }

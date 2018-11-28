@@ -2,6 +2,8 @@ package com.intelliroast.intelliroast;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.design.widget.NavigationView;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
@@ -10,6 +12,8 @@ import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
+
+import org.json.JSONObject;
 
 public class DevActivity extends AppCompatActivity implements View.OnClickListener {
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +39,48 @@ public class DevActivity extends AppCompatActivity implements View.OnClickListen
                         return true;
                     }
                 });
+    }
+
+    public static class ConnectionHandler extends Handler {
+        private MainActivity activity;
+        ConnectionHandler(MainActivity displayActivity) {
+            activity = displayActivity;
+        }
+        @Override
+        public void handleMessage(Message msg) {
+            if (msg.what == BluetoothClient.MessageType.CONNECTION_FAILED) {
+                showToast("Bluetooth failed to connect to IntelliRoast");
+            }
+            else if (msg.what == BluetoothClient.MessageType.CONNECTION_SUCCEEDED) {
+                showToast("Connected to IntelliRoast");
+            }
+            else if (msg.what == BluetoothConnection.MessageType.DISCONNECTED) {
+                showToast("Disconnected");
+            }
+            else if (msg.what == BluetoothConnection.MessageType.READ) {
+                byte[] readBuf = (byte[]) msg.obj;
+                String message = new String(readBuf, 0, msg.arg1);
+
+                // Convert to JSON
+                JSONObject messageReceived;
+                try {
+                    messageReceived = new JSONObject(message);
+                    switch ((String) messageReceived.get("state")) {
+                        case "Roasting":
+                            showToast((String) messageReceived.get("BT"));
+                            return;
+                    }
+                } catch (org.json.JSONException ex) {
+                    return;
+                }
+
+
+            }
+        }
+        //toast message function
+        private void showToast(String msg){
+            Toast.makeText(activity, msg, Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
