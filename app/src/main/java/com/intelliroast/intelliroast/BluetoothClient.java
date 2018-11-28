@@ -39,9 +39,13 @@ public class BluetoothClient extends Thread {
         bluetoothAdapter.cancelDiscovery();
         try {
             socket.connect();
+            MainActivity.isConnected = true;
         } catch (IOException connectException) {
             try {
+                Message readMsg = handler.obtainMessage(MessageType.CONNECTION_FAILED, -1, -1, null);
+                readMsg.sendToTarget();
                 socket.close();
+                MainActivity.isConnected = false;
             } catch (IOException closeException) {
                 Log.e(TAG, "Could not close the client socket", closeException);
             }
@@ -62,6 +66,7 @@ public class BluetoothClient extends Thread {
     void cancel() {
         try {
             socket.close();
+            MainActivity.isConnected = false;
         } catch (IOException e) {
             Log.e(TAG, "Could not close the client socket", e);
         }

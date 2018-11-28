@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button chooseDarkRoast;
     FloatingActionButton startRoast;
 
-    Boolean isConnected = false;
+    public static Boolean isConnected = false;
 
     public String roastType = "Medium";
 
@@ -90,6 +90,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     public boolean onNavigationItemSelected(MenuItem menuItem) {
                         switch (menuItem.getItemId()) {
                             case R.id.menu_connect:
+                                if (isConnected) {
+                                    showToast("Already connected");
+                                    return true;
+                                }
                                 connectToIntelliRoast();
                                 return true;
                             case R.id.menu_disconnect:
@@ -211,17 +215,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     // Set up Bluetooth connection
     public void connectToIntelliRoast() {
+        if (isConnected) {
+            // Already connected :)
+            return;
+        }
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (bluetoothAdapter == null) {
+            showToast("Bluetooth is not supported on this device!");
+            finish();
+        }
         if (!bluetoothAdapter.isEnabled()) {
             isConnected = false;
             showToast("Uh oh! Please turn on your Bluetooth for IntelliRoast to work!");
         } else {
-            bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
-            if (bluetoothAdapter == null) {
-                showToast("Bluetooth is not supported on this device!");
-                finish();
-            }
-
             Handler handler = new ConnectionHandler(this);
             BluetoothDevice bluetoothDevice = null;
             Set<BluetoothDevice> bondedDevices = bluetoothAdapter.getBondedDevices();
@@ -231,14 +237,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     break;
                 }
             }
-            if (bluetoothDevice == null) {
-                showToast("IntelliRoast is not found. Is your Bluetooth on?");
-                isConnected = false;
-            } else {
-                client = new BluetoothClient(bluetoothDevice, handler);
-                client.start();
-                isConnected = true;
-            }
+            client = new BluetoothClient(bluetoothDevice, handler);
+            client.start();
         }
     }
 
