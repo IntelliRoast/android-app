@@ -2,22 +2,15 @@ package com.intelliroast.intelliroast;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.support.design.widget.NavigationView;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import org.json.JSONObject;
-
-import static com.intelliroast.intelliroast.MainActivity.beanTemp;
 
 public class DevActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String TAG = "DevUI";
@@ -35,7 +28,7 @@ public class DevActivity extends AppCompatActivity implements View.OnClickListen
 
 
         mDrawerLayout = findViewById(R.id.drawer_layout);
-        mBeanTemp = findViewById(R.id.bean_temp);
+        mBeanTemp = findViewById(R.id.roast_details);
 
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(
