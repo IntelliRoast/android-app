@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mRoastDetails = findViewById(R.id.roast_details);
         mFanSpeed = findViewById(R.id.fan_speed_manual);
         mPower = findViewById(R.id.power_manual);
-        Integer[] percentage = new Integer[99];
+        Integer[] percentage = new Integer[100];
         for (int i = 0; i < 100; i++) {
             percentage[i] = i+1;
         }
