@@ -16,12 +16,14 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Set;
@@ -38,6 +40,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     final String startCommand = "{\"cmd\":\"Start\"}";
     final String stopCommand = "{\"cmd\":\"Stop\"}";
     final String ejectCommand = "{\"cmd\":\"Eject\"}";
+    final String autoCommand = "{\"cmd\":\"Auto\"}";
 
     private DrawerLayout mDrawerLayout;
 
@@ -50,8 +53,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     TextView mRoastDetails;
     Spinner mFanSpeed;
     Spinner mPower;
+    Button mEndManual;
+    Button mStartManual;
 
     public static Boolean isConnected = false;
+    public static Boolean isManual = false;
 
     public String roastType = "Medium";
 
@@ -70,6 +76,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        isConnected = false;
+        isManual = false;
 
         connectToIntelliRoast();
 
@@ -87,14 +95,70 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mRoastDetails = findViewById(R.id.roast_details);
         mFanSpeed = findViewById(R.id.fan_speed_manual);
         mPower = findViewById(R.id.power_manual);
-        Integer[] percentage = new Integer[100];
-        for (int i = 0; i < 100; i++) {
-            percentage[i] = i+1;
+        mEndManual = findViewById(R.id.endManual);
+        mStartManual = findViewById(R.id.startManual);
+        Integer[] percentage = new Integer[101];
+        for (int i = 0; i < 101; i++) {
+            percentage[i] = i;
         }
         ArrayAdapter<Integer> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, percentage);
 //set the spinners adapter to the previously created one.
         mFanSpeed.setAdapter(adapter);
+        mFanSpeed.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view,
+                                       int position, long id) {
+                if (!isManual) {
+                    Log.v(TAG, "Not in Manual Mode");
+                    return;
+                }
+                String percentage = parent.getItemAtPosition(position).toString();
+                String output = "Set Fan Speed: " + percentage + "%";
+                Log.v(TAG, output);
+                String fanSpeedCommand = "{\"cmd\":\"Manual\",\"fan\":\"" +
+                        percentage + "\"}";
+                if (isConnected) {
+                    client.write(fanSpeedCommand.getBytes());
+                    showToastShort("Setting Fan Speed to " + percentage + "%");
+                } else {
+                    Log.v(TAG, "Not connected to IntelliRoast");
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // TODO Auto-generated method stub
+
+            }
+        });
         mPower.setAdapter(adapter);
+        mPower.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view,
+                                       int position, long id) {
+                if (!isManual) {
+                    Log.v(TAG, "Not in Manual Mode");
+                    return;
+                }
+                String percentage = parent.getItemAtPosition(position).toString();
+                String output = "Set Power: " + percentage + "%";
+                Log.v(TAG, output);
+                String powerCommand = "{\"cmd\":\"Manual\",\"power\":\"" +
+                        percentage + "\"}";
+                if (isConnected) {
+                    client.write(powerCommand.getBytes());
+                    showToastShort("Setting Power to " + percentage + "%");
+                } else {
+                    Log.v(TAG, "Not connected to IntelliRoast");
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // TODO Auto-generated method stub
+
+            }
+        });
 
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(
@@ -131,6 +195,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         chooseMediumRoast.setOnClickListener(this);
         chooseDarkRoast.setOnClickListener(this);
         startRoast.setOnClickListener(this);
+        mEndManual.setOnClickListener(this);
+        mStartManual.setOnClickListener(this);
         String roastDetails = "IntelliRoast is currently waiting to roast.";
         mRoastDetails.setText(roastDetails);
     }
@@ -173,9 +239,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             return;
                         }
                         if (roastState.equals("Manual")) {
-                            // Handle Manual Mode
-//                            manualState(mRoastDetails);
-                            return;
+                            isManual = true;
+                        } else {
+                            isManual = false;
                         }
                         timeElapsed = messageReceived.get("T").toString();
                         beanTemp = messageReceived.get("BT").toString();
@@ -202,6 +268,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 "\nHeating Element Temp: " + elementTemp + " C" +
                                 "\nHeating Element Power: " + elementPower + "%" +
                                 "\nFan Speed: " + fanSpeed + "%";
+                        if (isManual) {
+                            roastDetails = "IntelliRoast is currently Roasting in " + roastState + " Mode." +
+                                    "\nTime Elapsed: " + timeElapsed + secondsString +
+                                    "\nBean Temp: " + beanTemp + " C" +
+                                    "\nHeating Element Temp: " + elementTemp + " C" +
+                                    "\nHeating Element Power: " + elementPower + "%" +
+                                    "\nFan Speed: " + fanSpeed + "%";
+                        }
                         mRoastDetails.setText(roastDetails);
                     } else {
                         roastDetails = "IntelliRoast is currently waiting to roast.";
@@ -251,10 +325,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.startRoast:
                 // Start roast
+                if (isManual) {
+                    showToast("You must stop your Manual Roast first!");
+                    break;
+                }
                 client.write(startCommand.getBytes());
                 showToast("Starting " + roastType + " Roast!");
+                break;
+            case R.id.endManual:
+                // Go back to Auto
+                client.write(autoCommand.getBytes());
+                isManual = false;
+                showToast("Cooling down and stopping roast");
+                break;
+            case R.id.startManual:
+                // Start a Manual Roast
+                String fanSpeed = mFanSpeed.getSelectedItem().toString();
+                String power = mPower.getSelectedItem().toString();
+                String manualCommand = "{\"cmd\":\"Manual\",\"fan\":\"" +
+                        fanSpeed + "\",\"power\":\"" +
+                        power + "\"}";
+                client.write(manualCommand.getBytes());
+                isManual = true;
+                showToast("Switched to Manual Mode");
+                break;
         }
-        //Your Logic
     }
 
     public void loadRoast(String type) {
@@ -355,14 +450,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         return super.onOptionsItemSelected(item);
     }
-    //toast message function
+    //toast message functions
     private void showToast(String msg){
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+    }
+    private void showToastShort(String msg){
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 
     @Override
     protected void onDestroy() {
         client.cancel();
+        isManual = false;
         super.onDestroy();
     }
 
