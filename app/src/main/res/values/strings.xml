@@ -38,4 +38,10 @@
     <string name="devOptions">Development Options</string>
     <string name="devOptionsDescription">Below are current roast readings. You can also manually
         adjust fan speed and heating element power.</string>
+    <string name="manualMode">Manual Mode</string>
+    <string name="manualModeDesc">Use this to manually control the fan speed and power. This does not
+        work in the middle of a pre-defined roast.</string>
+    <string name="fanSpeed">Set Fan Speed (%)</string>
+    <string name="power">Set Power (%)</string>
+    <string name="startManual">Start manual roast</string>
 </resources>

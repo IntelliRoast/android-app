@@ -9,9 +9,13 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class DevActivity extends AppCompatActivity implements View.OnClickListener {
+    private static final String TAG = "DevUI";
+    DrawerLayout mDrawerLayout;
+    TextView mBeanTemp;
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.dev_options);
@@ -22,9 +26,9 @@ public class DevActivity extends AppCompatActivity implements View.OnClickListen
         actionbar.setDisplayHomeAsUpEnabled(true);
         actionbar.setHomeAsUpIndicator(R.drawable.ic_back);
 
-        DrawerLayout mDrawerLayout;
 
         mDrawerLayout = findViewById(R.id.drawer_layout);
+        mBeanTemp = findViewById(R.id.roast_details);
 
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(
@@ -35,6 +39,10 @@ public class DevActivity extends AppCompatActivity implements View.OnClickListen
                         return true;
                     }
                 });
+    }
+
+    public void updateBeanTemp(String text) {
+        mBeanTemp.setText(text);
     }
 
     @Override
