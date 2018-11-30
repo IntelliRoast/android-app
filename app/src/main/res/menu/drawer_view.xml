@@ -19,8 +19,8 @@
             android:checkable="false"
             android:title="@string/disconnect" />
         <item
-            android:id="@+id/menu_dev"
+            android:id="@+id/menu_em_stop"
             android:checkable="false"
-            android:title="@string/devOptions" />
+            android:title="@string/emStop" />
     </group>
 </menu>

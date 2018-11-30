@@ -23,7 +23,6 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Set;
@@ -38,6 +37,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     final String connected = "{\"cmd\":\"Connected\"}";
     final String connectedAck = "{\"cmd\":\"Ack\",\"state\":\"Idle\"}";
     final String startCommand = "{\"cmd\":\"Start\"}";
+    final String coolDownCommand = "{\"cmd\":\"Cool\"}";
     final String stopCommand = "{\"cmd\":\"Stop\"}";
     final String ejectCommand = "{\"cmd\":\"Eject\"}";
     final String autoCommand = "{\"cmd\":\"Auto\"}";
@@ -182,8 +182,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             case R.id.stop_roast:
                                 stopRoast();
                                 return true;
-                            case R.id.menu_dev:
-                                openDevOptions();
+                            case R.id.menu_em_stop:
+                                emergencyStopRoast();
                                 return true;
                         }
                         return true;
@@ -334,9 +334,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.endManual:
                 // Go back to Auto
-                client.write(autoCommand.getBytes());
+                stopRoast();
                 isManual = false;
-                showToast("Cooling down and stopping roast");
                 break;
             case R.id.startManual:
                 // Start a Manual Roast
@@ -432,7 +431,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             showToast("Not connected to IntelliRoast");
             return;
         }
-        showToast("Stopping the current roast");
+        showToast("Stopping and cooling down the current roast");
+        client.write(coolDownCommand.getBytes());
+    }
+
+    public void emergencyStopRoast() {
+        if (!isConnected) {
+            showToast("Not connected to IntelliRoast");
+            return;
+        }
+        showToast("Turning off Fan and Heat");
         client.write(stopCommand.getBytes());
     }
 

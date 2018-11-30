@@ -44,4 +44,5 @@
     <string name="fanSpeed">Set Fan Speed (%)</string>
     <string name="power">Set Power (%)</string>
     <string name="startManual">Start manual roast</string>
+    <string name="emStop">Emergency Stop</string>
 </resources>
