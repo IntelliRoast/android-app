@@ -70,6 +70,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public static String fanSpeed = "";
 
     public static Integer maxBeanTemp = 0;
+    public static Integer roastTime = 0;
 
 
     @Override
@@ -254,6 +255,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         if (maxBeanTemp < beanTempInt) {
                             maxBeanTemp = beanTempInt;
                         }
+                        Integer roastTimeInt = Integer.parseInt(timeElapsed);
+                        if (roastTime < roastTimeInt) {
+                            roastTime = roastTimeInt;
+                        }
 
                         String secondsString;
                         if (Integer.parseInt(timeElapsed) == 1) {
@@ -293,7 +298,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             String roastDetails = "IntelliRoast is currently waiting to roast.";
             if (!timeElapsed.equals("")) {
                 if (Integer.parseInt(timeElapsed) > 0) {
-                    roastDetails = "Last Roast took " + timeElapsed + " seconds." +
+                    roastDetails = "Last Roast took " + roastTime + " seconds." +
                             "\nThe beans reached a maximum temperature of " + maxBeanTemp + " C." +
                             "\nIntelliRoast is currently waiting to roast.";
                 }
@@ -329,6 +334,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     showToast("You must stop your Manual Roast first!");
                     break;
                 }
+                maxBeanTemp = 0;
+                roastTime = 0;
                 client.write(startCommand.getBytes());
                 showToast("Starting " + roastType + " Roast!");
                 break;
@@ -344,6 +351,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 String manualCommand = "{\"cmd\":\"Manual\",\"fan\":\"" +
                         fanSpeed + "\",\"power\":\"" +
                         power + "\"}";
+                maxBeanTemp = 0;
+                roastTime = 0;
                 client.write(manualCommand.getBytes());
                 isManual = true;
                 showToast("Switched to Manual Mode");
