@@ -442,6 +442,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         showToast("Turning off Fan and Heat");
         client.write(stopCommand.getBytes());
+        isManual = false;
     }
 
     public void openDevOptions() {
