@@ -211,12 +211,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void handleMessage(Message msg) {
             if (msg.what == BluetoothClient.MessageType.CONNECTION_FAILED) {
                 showToast("Bluetooth failed to connect to IntelliRoast");
+                isConnected = false;
             }
             else if (msg.what == BluetoothClient.MessageType.CONNECTION_SUCCEEDED) {
                 showToast("Connected to IntelliRoast");
+                isConnected = true;
             }
             else if (msg.what == BluetoothConnection.MessageType.DISCONNECTED) {
                 showToast("Disconnected");
+                isConnected = false;
             }
             else if (msg.what == BluetoothConnection.MessageType.READ) {
 //                byte[] readBuf = (byte[]) msg.obj;
@@ -330,6 +333,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.startRoast:
                 // Start roast
+                if (!isConnected) {
+                    showToast("Not connected to IntelliRoast");
+                    return;
+                }
                 if (isManual) {
                     showToast("You must stop your Manual Roast first!");
                     break;
@@ -346,6 +353,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.startManual:
                 // Start a Manual Roast
+                if (!isConnected) {
+                    showToast("Not connected to IntelliRoast");
+                    return;
+                }
                 String fanSpeed = mFanSpeed.getSelectedItem().toString();
                 String power = mPower.getSelectedItem().toString();
                 String manualCommand = "{\"cmd\":\"Manual\",\"fan\":\"" +
