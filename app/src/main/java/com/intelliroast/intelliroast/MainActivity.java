@@ -19,9 +19,12 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.squareup.picasso.Picasso;
 
 import org.json.JSONObject;
 
@@ -55,6 +58,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Spinner mPower;
     Button mEndManual;
     Button mStartManual;
+    ImageView lightRoastImageView;
+    ImageView medRoastImageView;
+    ImageView darkRoastImageView;
 
     public static Boolean isConnected = false;
     public static Boolean isManual = false;
@@ -80,6 +86,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         isConnected = false;
         isManual = false;
 
+
+
+
         connectToIntelliRoast();
 
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -98,6 +107,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mPower = findViewById(R.id.power_manual);
         mEndManual = findViewById(R.id.endManual);
         mStartManual = findViewById(R.id.startManual);
+
+
+        lightRoastImageView = findViewById(R.id.imageView4);
+        medRoastImageView = findViewById(R.id.imageView5);
+        darkRoastImageView = findViewById(R.id.imageView6);
+        Picasso.get().load(R.drawable.light_roast).into(lightRoastImageView);
+        Picasso.get().load(R.drawable.medium_roast).into(medRoastImageView);
+        Picasso.get().load(R.drawable.dark_roast).into(darkRoastImageView);
+
+
         Integer[] percentage = new Integer[101];
         for (int i = 0; i < 101; i++) {
             percentage[i] = i;
