@@ -442,8 +442,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     break;
                 }
             }
-            client = new BluetoothClient(bluetoothDevice, handler);
-            client.start();
+            if (bluetoothDevice == null) {
+                isConnected = false;
+                showToast("You must first connect to IntelliRoast in your Bluetooth settings");
+            } else {
+                client = new BluetoothClient(bluetoothDevice, handler);
+                client.start();
+            }
         }
     }
 
