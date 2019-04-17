@@ -71,7 +71,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public static String timeElapsed = "";
     public static String beanTemp = "";
     public static String setTemp = "";
-    public static String elementTemp = "";
+    public static String inputTemp = "";
+    public static String exhaustTemp = "";
     public static String elementPower = "";
     public static String fanSpeed = "";
 
@@ -269,7 +270,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         timeElapsed = messageReceived.get("T").toString();
                         beanTemp = messageReceived.get("BT").toString();
                         setTemp = messageReceived.get("ST").toString();
-                        elementTemp = messageReceived.get("ET").toString();
+                        inputTemp = messageReceived.get("IT").toString();
+                        exhaustTemp = messageReceived.get("ET").toString();
                         elementPower = messageReceived.get("DC").toString();
                         fanSpeed = messageReceived.get("FS").toString();
 
@@ -292,14 +294,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 "\nTime Elapsed: " + timeElapsed + secondsString +
                                 "\nBean Temp: " + beanTemp + " C" +
                                 "\nSet Temp: " + setTemp + " C" +
-                                "\nHeating Element Temp: " + elementTemp + " C" +
+                                "\nExhaust Air Temp: " + exhaustTemp + " C" +
+                                "\nInput Air Temp: " + inputTemp + " C" +
                                 "\nHeating Element Power: " + elementPower + "%" +
                                 "\nFan Speed: " + fanSpeed + "%";
                         if (isManual) {
                             roastDetails = "IntelliRoast is currently Roasting in " + roastState + " Mode." +
                                     "\nTime Elapsed: " + timeElapsed + secondsString +
                                     "\nBean Temp: " + beanTemp + " C" +
-                                    "\nHeating Element Temp: " + elementTemp + " C" +
+                                    "\nExhaust Air Temp: " + exhaustTemp + " C" +
+                                    "\nInput Air Temp: " + inputTemp + " C" +
                                     "\nHeating Element Power: " + elementPower + "%" +
                                     "\nFan Speed: " + fanSpeed + "%";
                         }
