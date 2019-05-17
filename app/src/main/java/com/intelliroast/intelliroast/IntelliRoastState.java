@@ -1,7 +1,8 @@
 package com.intelliroast.intelliroast;
 
 class IntelliRoastState {
-    String roastState = "";
+    String mode = "Auto";
+    String roastState = "Idle";
     String timeElapsed = "";
     String beanTemp = "";
     String setTemp = "";

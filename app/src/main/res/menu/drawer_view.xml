@@ -7,10 +7,6 @@
             android:checkable="false"
             android:title="@string/connect" />
         <item
-            android:id="@+id/menu_eject"
-            android:checkable="false"
-            android:title="@string/eject" />
-        <item
             android:id="@+id/stop_roast"
             android:checkable="false"
             android:title="@string/stopRoast" />
