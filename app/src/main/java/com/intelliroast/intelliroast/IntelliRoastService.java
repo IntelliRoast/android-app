@@ -1,15 +1,21 @@
 package com.intelliroast.intelliroast;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import org.json.JSONException;
@@ -23,35 +29,19 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
-public class BluetoothService extends Service {
+public class IntelliRoastService extends Service {
 
     //TODO: Add a "WAITING_FOR_ACK" State and then implement a way to look and wait for the acks
-
-    // Binder given to clients
-    private final IBinder binder = new BluetoothBinder();
-    // Debugging
-    private static final String TAG = "BluetoothService";
-
-    // Name for the SDP record when creating server socket
-    private static final String NAME_INSECURE = "BluetoothIntelliRoast";
-
-    private static final UUID serialUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-
-    // Member fields
-    private final BluetoothAdapter mAdapter;
-    //private final Handler mHandler;
-    private ConnectThread mConnectThread;
-    private ConnectedThread mConnectedThread;
-    public IntelliRoastState machineState;
-    private Handler mHandler = null;
-    private int mState;
-    private int mNewState;
 
     // Constants that indicate the current connection state
     public static final int STATE_NONE = 0;       // we're doing nothing
     public static final int STATE_CONNECTING = 1; // now initiating an outgoing connection
     public static final int STATE_CONNECTED = 2; // now connected to a remote device
-
+    // Debugging
+    private static final String TAG = "IntelliRoastService";
+    // Name for the SDP record when creating server socket
+    private static final String NAME_INSECURE = "BluetoothIntelliRoast";
+    private static final UUID serialUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     final String connected = "{\"cmd\":\"Connected\"}";
     final String connectedAck = "{\"cmd\":\"Ack\",\"state\":\"Idle\"}";
     final String startCommand = "{\"cmd\":\"Start\"}";
@@ -60,23 +50,35 @@ public class BluetoothService extends Service {
     final String ejectCommand = "{\"cmd\":\"Eject\"}";
     final String autoCommand = "{\"cmd\":\"Auto\"}";
     final String roastDetailsCommand = "{\"cmd\":\"RoastDetails\"}";
+    // Binder given to clients
+    private final IBinder binder = new IntelliRoastBinder();
+    // Member fields
+    private final BluetoothAdapter mAdapter;
+    public IntelliRoastState machineState;
+    //private final Handler mHandler;
+    private ConnectThread mConnectThread;
+    private ConnectedThread mConnectedThread;
+    private Handler mHandler = null;
+    private int mState;
+    private int mNewState;
+
+    private Intent mNotificationIntent;
+    private Notification mNotification;
+    private PendingIntent mPendingNotificationIntent;
+    private NotificationCompat.Builder mNotificationBuilder;
+    private NotificationManager notificationManager;
 
 
-    public BluetoothService() {
+    public IntelliRoastService() {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mState = STATE_NONE;
         mNewState = mState;
     }
 
-    public class BluetoothBinder extends Binder {
-        BluetoothService getService() {
-            // Return this instance of LocalService so clients can call public methods
-            return BluetoothService.this;
-        }
-    }
-
     @Override
     public void onCreate() {
+        createNotificationChannel();
+        setupForegroundNotification();
     }
 
     @Override
@@ -85,7 +87,8 @@ public class BluetoothService extends Service {
     }
 
     @Override
-    public void onDestroy(){
+    public void onDestroy() {
+        stopForeground(true);
         stop(); //stops all active threads and cleans things up
     }
 
@@ -95,6 +98,40 @@ public class BluetoothService extends Service {
 
     public void setHandler(Handler handler) {
         mHandler = handler;
+    }
+
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "IntelliRoastNotificationChannel";
+            String description = "For Delivering Notifications from IntelliRoast";
+            int importance = NotificationManager.IMPORTANCE_LOW;
+            NotificationChannel channel = new NotificationChannel("Misc", name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
+
+    /**
+     * Setup Foreground Notification for service.
+     */
+    private void setupForegroundNotification() {
+        mNotificationIntent = new Intent(this, MainActivity.class);
+        mPendingNotificationIntent = PendingIntent.getActivity(this, 0, mNotificationIntent, 0);
+
+        mNotificationBuilder = new NotificationCompat.Builder(this, "Misc")
+                .setContentTitle("IntelliRoast")
+                .setContentText("Waiting to start a roast")
+                .setContentIntent(mPendingNotificationIntent)
+                .setSmallIcon(R.mipmap.ic_launcher);
+        mNotification = mNotificationBuilder.build();
+        notificationManager.notify(1,mNotification);
+        startForeground(1, mNotification);
     }
 
     /**
@@ -236,6 +273,7 @@ public class BluetoothService extends Service {
         mHandler.sendMessage(msg);
 
         mState = STATE_NONE;
+        notifyStateChange();
 
     }
 
@@ -251,9 +289,84 @@ public class BluetoothService extends Service {
         mHandler.sendMessage(msg);
 
         mState = STATE_NONE;
+        notifyStateChange();
 
     }
 
+    public void ejectBeans() {
+        if (mState == STATE_CONNECTED) {
+            mConnectedThread.write(ejectCommand.getBytes());
+        }
+    }
+
+    public void startRoast() {
+        if (mState == STATE_CONNECTED) {
+            mConnectedThread.write(startCommand.getBytes());
+        }
+    }
+
+    public void stopRoast() {
+        if (mState == STATE_CONNECTED) {
+            mConnectedThread.write(coolDownCommand.getBytes());
+        }
+    }
+
+    public void startManualMode(String manualCommand) {
+        if (mState == STATE_CONNECTED) {
+            mConnectedThread.write(manualCommand.getBytes());
+        }
+    }
+
+    public void loadRoast(String type) {
+        //TODO: HANDLE CUSTOM ROASTS (soon to be only type of roasts)
+        if (mState == STATE_CONNECTED) {
+            String roastProfile;
+            switch (type) {
+                case "Light":
+                    roastProfile = "{\"cmd\":\"Load\",\"default\":1}";
+                    break;
+                case "Medium":
+                    roastProfile = "{\"cmd\":\"Load\",\"default\":2}";
+                    break;
+                case "Dark":
+                    roastProfile = "{\"cmd\":\"Load\",\"default\":3}";
+                    break;
+                default:
+                    roastProfile = "{\"cmd\":\"Load\",\"default\":2}";
+                    break;
+            }
+            mConnectedThread.write(roastProfile.getBytes());
+        }
+    }
+
+    public void setFanSpeed(String fanspeed) {
+        if (mState == STATE_CONNECTED) {
+            String fanSpeedCommand = "{\"cmd\":\"Manual\",\"fan\":\"" +
+                    fanspeed + "\"}";
+            mConnectedThread.write(fanSpeedCommand.getBytes());
+        }
+    }
+
+    public void setPower(String fanspeed) {
+        if (mState == STATE_CONNECTED) {
+            String powerCommand = "{\"cmd\":\"Manual\",\"power\":\"" +
+                    fanspeed + "\"}";
+            mConnectedThread.write(powerCommand.getBytes());
+        }
+    }
+
+    public void emergencyStopRoast() {
+        if (mState == STATE_CONNECTED) {
+            mConnectedThread.write(stopCommand.getBytes());
+        }
+    }
+
+    public class IntelliRoastBinder extends Binder {
+        IntelliRoastService getService() {
+            // Return this instance of LocalService so clients can call public methods
+            return IntelliRoastService.this;
+        }
+    }
 
     /**
      * This thread runs while attempting to make an outgoing connection
@@ -304,7 +417,7 @@ public class BluetoothService extends Service {
             }
 
             // Reset the ConnectThread because we're done
-            synchronized (BluetoothService.this) {
+            synchronized (IntelliRoastService.this) {
                 mConnectThread = null;
             }
 
@@ -383,7 +496,7 @@ public class BluetoothService extends Service {
                                 machineState.roastTime = roastTimeInt;
                             }
                         } catch (JSONException e) {
-                            Log.e(TAG,"Error creating JSONObject", e);
+                            Log.e(TAG, "Error creating JSONObject", e);
                         }
                         mHandler.obtainMessage(constants.MESSAGE_MACHINE_STATE).sendToTarget();
 
@@ -398,7 +511,7 @@ public class BluetoothService extends Service {
                     connectionLost();
                     break;
                 } catch (InterruptedException e) {
-                    Log.e(TAG,"connectedThread: InterruptedException");
+                    Log.e(TAG, "connectedThread: InterruptedException");
                     connectionFailed();
                     break;
                 }
@@ -427,74 +540,6 @@ public class BluetoothService extends Service {
             } catch (IOException e) {
                 Log.e(TAG, "close() of connect socket failed", e);
             }
-        }
-    }
-
-    public void ejectBeans() {
-        if (mState == STATE_CONNECTED) {
-            mConnectedThread.write(ejectCommand.getBytes());
-        }
-    }
-
-    public void startRoast() {
-        if (mState == STATE_CONNECTED) {
-            mConnectedThread.write(startCommand.getBytes());
-        }
-    }
-
-    public void stopRoast() {
-        if (mState == STATE_CONNECTED) {
-            mConnectedThread.write(coolDownCommand.getBytes());
-        }
-    }
-
-    public void startManualMode(String manualCommand) {
-        if (mState == STATE_CONNECTED) {
-            mConnectedThread.write(manualCommand.getBytes());
-        }
-    }
-
-    public void loadRoast(String type) {
-        //TODO: HANDLE CUSTOM ROASTS (soon to be only type of roasts)
-        if (mState == STATE_CONNECTED) {
-            String roastProfile;
-            switch (type) {
-                case "Light":
-                    roastProfile = "{\"cmd\":\"Load\",\"default\":1}";
-                    break;
-                case "Medium":
-                    roastProfile = "{\"cmd\":\"Load\",\"default\":2}";
-                    break;
-                case "Dark":
-                    roastProfile = "{\"cmd\":\"Load\",\"default\":3}";
-                    break;
-                default:
-                    roastProfile = "{\"cmd\":\"Load\",\"default\":2}";
-                    break;
-            }
-            mConnectedThread.write(roastProfile.getBytes());
-        }
-    }
-
-    public void setFanSpeed(String fanspeed) {
-        if (mState == STATE_CONNECTED) {
-            String fanSpeedCommand = "{\"cmd\":\"Manual\",\"fan\":\"" +
-                    fanspeed + "\"}";
-            mConnectedThread.write(fanSpeedCommand.getBytes());
-        }
-    }
-
-    public void setPower(String fanspeed) {
-        if (mState == STATE_CONNECTED) {
-            String powerCommand = "{\"cmd\":\"Manual\",\"power\":\"" +
-                    fanspeed + "\"}";
-            mConnectedThread.write(powerCommand.getBytes());
-        }
-    }
-
-    public void emergencyStopRoast() {
-        if (mState == STATE_CONNECTED) {
-            mConnectedThread.write(stopCommand.getBytes());
         }
     }
 }

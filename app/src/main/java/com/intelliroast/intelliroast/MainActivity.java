@@ -24,8 +24,10 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,14 +38,16 @@ import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String TAG = "MainUI";
-
-
-    private DrawerLayout mDrawerLayout;
-
+    // Intent request codes
+    private static final int REQUEST_ENABLE_BT = 3;
+    public static Boolean isConnected = false;
+    public static Boolean isManual = false;
+    public String roastType = "Medium";
     Button chooseLightRoast;
     Button chooseMediumRoast;
     Button chooseDarkRoast;
     FloatingActionButton startRoast;
+    Switch mSwitchConnect;
     TextView mRoastDetails;
     Spinner mFanSpeed;
     Spinner mPower;
@@ -52,23 +56,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     ImageView lightRoastImageView;
     ImageView medRoastImageView;
     ImageView darkRoastImageView;
-
-    public static Boolean isConnected = false;
-    public static Boolean isManual = false;
-
-    public String roastType = "Medium";
-
-    // Intent request codes
-    private static final int REQUEST_ENABLE_BT = 3;
-
-
-    BluetoothService mService;
+    IntelliRoastService mService;
     BluetoothAdapter mAdapter;
     BluetoothDevice mDevice;
     Handler mHandler = new ConnectionHandler(MainActivity.this);
     IntelliRoastState mMachineState;
     boolean mBound = false;
-
+    private DrawerLayout mDrawerLayout;
     /**
      * Defines callbacks for service binding, passed to bindService()
      */
@@ -78,11 +72,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onServiceConnected(ComponentName className,
                                        IBinder service) {
             // We've bound to LocalService, cast the IBinder and get LocalService instance
-            BluetoothService.BluetoothBinder binder = (BluetoothService.BluetoothBinder) service;
+            IntelliRoastService.IntelliRoastBinder binder = (IntelliRoastService.IntelliRoastBinder) service;
             mService = binder.getService();
             mBound = true;
             mService.setHandler(mHandler);
-            connectToIntelliRoast();
         }
 
         @Override
@@ -94,12 +87,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onStart() {
         super.onStart();
-        Intent intent = new Intent(this, BluetoothService.class);
+        Intent intent = new Intent(this, IntelliRoastService.class);
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setTheme(R.style.AppTheme);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         isConnected = false;
@@ -123,12 +117,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mStartManual = findViewById(R.id.startManual);
 
 
+
         lightRoastImageView = findViewById(R.id.imageView4);
         medRoastImageView = findViewById(R.id.imageView5);
         darkRoastImageView = findViewById(R.id.imageView6);
-        Picasso.get().load(R.drawable.light_roast).into(lightRoastImageView);
-        Picasso.get().load(R.drawable.medium_roast).into(medRoastImageView);
-        Picasso.get().load(R.drawable.dark_roast).into(darkRoastImageView);
+//        Picasso.get().load(R.drawable.light_roast).into(lightRoastImageView);
+//        Picasso.get().load(R.drawable.medium_roast).into(medRoastImageView);
+//        Picasso.get().load(R.drawable.dark_roast).into(darkRoastImageView);
 
 
         Integer[] percentage = new Integer[101];
@@ -138,6 +133,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ArrayAdapter<Integer> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, percentage);
 //set the spinners adapter to the previously created one.
 
+        mSwitchConnect = findViewById(R.id.switchConnect);
+        mSwitchConnect.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    connectToIntelliRoast();
+                }
+            }
+        });
+
+
         //Manual Mode Fan Speed
         mFanSpeed.setAdapter(adapter);
         mFanSpeed.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -145,7 +150,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onItemSelected(AdapterView<?> parent, View view,
                                        int position, long id) {
                 if (mService != null) {
-                    if (mService.getState() == mService.STATE_CONNECTED) {
+                    if (mService.getState() == IntelliRoastService.STATE_CONNECTED) {
                         if (mService.machineState.roastState.contains("Manual")) {
                             Log.v(TAG, "Not in Manual Mode");
                             return;
@@ -171,7 +176,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onItemSelected(AdapterView<?> parent, View view,
                                        int position, long id) {
                 if (mService != null) {
-                    if (mService.getState() == mService.STATE_CONNECTED) {
+                    if (mService.getState() == IntelliRoastService.STATE_CONNECTED) {
                         if (mService.machineState.roastState.contains("Manual")) {
                             Log.v(TAG, "Not in Manual Mode");
                             return;
@@ -199,7 +204,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     public boolean onNavigationItemSelected(MenuItem menuItem) {
                         switch (menuItem.getItemId()) {
                             case R.id.menu_connect:
-                                if (mService.getState() == mService.STATE_CONNECTED) {
+                                if (mService.getState() == IntelliRoastService.STATE_CONNECTED) {
                                     showToast("Already connected");
                                     return true;
                                 }
@@ -233,7 +238,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     /**
      * Sets up and connects IntelliRoast
-     *
      */
     public void connectToIntelliRoast() {
         mDevice = null;
@@ -260,6 +264,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    public void disconnectFromIntelliRoast() {
+        if(mBound) {
+            unbindService(connection);
+        }
+        isManual = false;
+        mDevice = null;
+    }
+
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
@@ -275,89 +287,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    public class ConnectionHandler extends Handler {
-        private MainActivity activity;
-        ConnectionHandler(MainActivity displayActivity) {
-            activity = displayActivity;
-        }
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case constants.MESSAGE_STATE_CHANGE:
-                    int state = mService.getState();
-                    if (state == mService.STATE_CONNECTED){
-                        showToast("IntelliRoast Connected");
-                        isConnected = true;
-                    } else if (state == mService.STATE_CONNECTING) {
-                        showToast("Connecting to IntelliRoast");
-                    } else if (state == mService.STATE_NONE) {
-                        showToast("IntelliRoast Disconnected");
-                        isConnected = true;
-                    }
-                    break;
-                case constants.MESSAGE_MACHINE_STATE:
-                    String roastDetails;
-                    if (mMachineState.roastState.contains("Idle")) {
-                        roastDetails = "IntelliRoast is currently waiting to roast.";
-                        if (!mMachineState.timeElapsed.equals("")) {
-                            String timeString;
-                            int time = Integer.parseInt(mMachineState.timeElapsed);
-                            if(time > 59) {
-                                int minutes = time / 60;
-                                int seconds = time % 60;
-                                timeString = Integer.toString(minutes) + "m " + Integer.toString(seconds) + "s.";
-                            } else {
-                                timeString = mMachineState.timeElapsed+"s.";
-                            }
-                            if (Integer.parseInt(mMachineState.timeElapsed) > 0) {
-                                roastDetails = "Last Roast took " + timeString +
-                                        "\nThe beans reached a maximum temperature of "
-                                        + mMachineState.maxBeanTemp + " C." +
-                                        "\nIntelliRoast is currently waiting to roast.";
-                            }
-                        }
-                        mRoastDetails.setText(roastDetails);
-                    } else {
-                        String timeString;
-                        int time = Integer.parseInt(mMachineState.timeElapsed);
-                        if(time > 59) {
-                            int minutes = time / 60;
-                            int seconds = time % 60;
-                            timeString = Integer.toString(minutes) + "m " + Integer.toString(seconds) + "s";
-                        } else {
-                            timeString = mMachineState.timeElapsed+"s";
-                        }
-                        if (isManual) {
-                            roastDetails = "IntelliRoast is currently " + mMachineState.roastState + "." +
-                                    "\nTime Elapsed: " + timeString +
-                                    "\nBean Temp: " + mMachineState.beanTemp + " C" +
-                                    "\nSet Temp: " + mMachineState.setTemp + " C" +
-                                    "\nExhaust Air Temp: " + mMachineState.exhaustTemp + " C" +
-                                    "\nInput Air Temp: " + mMachineState.inputTemp + " C" +
-                                    "\nHeating Element Power: " + mMachineState.elementPower + "%" +
-                                    "\nFan Speed: " + mMachineState.fanSpeed + "%";
-                        }
-                    }
-                    break;
-                case constants.MESSAGE_READ:
-                    String message = (String) msg.obj;
-                    Log.d(TAG, message);
-                    break;
-                case constants.MESSAGE_TOAST:
-                    if (null != activity) {
-                        Toast.makeText(activity, msg.getData().getString(constants.TOAST),
-                                Toast.LENGTH_SHORT).show();
-                    }
-                    break;
-            }
-        }
-        //toast message function
-        private void showToast(String msg){
-            Toast.makeText(activity, msg, Toast.LENGTH_LONG).show();
-        }
-    }
-
-
     @Override
     public void onClick(View v) {
 
@@ -365,7 +294,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (v.getId()) {
             case R.id.doLight:
                 // Load Light Roast
-                if (mService.getState() != mService.STATE_CONNECTED) {
+                if (mService.getState() != IntelliRoastService.STATE_CONNECTED) {
                     showToast("Not connected to IntelliRoast");
                     break;
                 }
@@ -373,7 +302,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.doMedium:
                 // Load Medium Roast
-                if (mService.getState() != mService.STATE_CONNECTED) {
+                if (mService.getState() != IntelliRoastService.STATE_CONNECTED) {
                     showToast("Not connected to IntelliRoast");
                     break;
                 }
@@ -381,7 +310,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.doDark:
                 // Load Dark Roast
-                if (mService.getState() != mService.STATE_CONNECTED) {
+                if (mService.getState() != IntelliRoastService.STATE_CONNECTED) {
                     showToast("Not connected to IntelliRoast");
                     break;
                 }
@@ -389,8 +318,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.startRoast:
                 // Start roast
-                if (mService.getState() != mService.STATE_CONNECTED) {
+                if (mService.getState() != IntelliRoastService.STATE_CONNECTED) {
                     showToast("Not connected to IntelliRoast");
+
+                    Intent roastingActivityIntent = new Intent(this, RoastingActivity.class);
+                    startActivity(roastingActivityIntent);
                     break;
                 }
                 if (isManual) {
@@ -399,11 +331,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 mMachineState.maxBeanTemp = 0;
                 mMachineState.roastTime = 0;
+                Intent roastingActivityIntent = new Intent(this, RoastingActivity.class);
+                startActivity(roastingActivityIntent);
                 mService.startRoast();
                 break;
             case R.id.endManual:
                 // Go back to Auto
-                if (mService.getState() != mService.STATE_CONNECTED) {
+                if (mService.getState() != IntelliRoastService.STATE_CONNECTED) {
                     showToast("Not connected to IntelliRoast");
                     break;
                 }
@@ -412,7 +346,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.startManual:
                 // Start a Manual Roast
-                if (mService.getState() != mService.STATE_CONNECTED) {
+                if (mService.getState() != IntelliRoastService.STATE_CONNECTED) {
                     showToast("Not connected to IntelliRoast");
                     return;
                 }
@@ -455,9 +389,102 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     protected void onDestroy() {
-        unbindService(connection);
+        if (mBound) {
+            unbindService(connection);
+        }
         isManual = false;
         super.onDestroy();
+    }
+
+    public class ConnectionHandler extends Handler {
+        private MainActivity activity;
+
+        ConnectionHandler(MainActivity displayActivity) {
+            activity = displayActivity;
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case constants.MESSAGE_STATE_CHANGE:
+                    int state = mService.getState();
+                    if (state == IntelliRoastService.STATE_CONNECTED) {
+                        showToast("IntelliRoast Connected");
+                        mSwitchConnect.setText("Connected");
+                        mSwitchConnect.setChecked(true);
+                        isConnected = true;
+                    } else if (state == IntelliRoastService.STATE_CONNECTING) {
+                        mSwitchConnect.setText("Connecting");
+                        mSwitchConnect.setChecked(true);
+                        showToast("Connecting to IntelliRoast");
+                    } else if (state == IntelliRoastService.STATE_NONE) {
+                        showToast("IntelliRoast Disconnected");
+                        mSwitchConnect.setText("Disconnected");
+                        mSwitchConnect.setChecked(false);
+                        isConnected = true;
+                    }
+                    break;
+                case constants.MESSAGE_MACHINE_STATE:
+                    String roastDetails;
+                    if (mMachineState.roastState.contains("Idle")) {
+                        roastDetails = "IntelliRoast is currently waiting to roast.";
+                        if (!mMachineState.timeElapsed.equals("")) {
+                            String timeString;
+                            int time = Integer.parseInt(mMachineState.timeElapsed);
+                            if (time > 59) {
+                                int minutes = time / 60;
+                                int seconds = time % 60;
+                                timeString = minutes + "m " + seconds + "s.";
+                            } else {
+                                timeString = mMachineState.timeElapsed + "s.";
+                            }
+                            if (Integer.parseInt(mMachineState.timeElapsed) > 0) {
+                                roastDetails = "Last Roast took " + timeString +
+                                        "\nThe beans reached a maximum temperature of "
+                                        + mMachineState.maxBeanTemp + " C." +
+                                        "\nIntelliRoast is currently waiting to roast.";
+                            }
+                        }
+                        mRoastDetails.setText(roastDetails);
+                    } else {
+                        String timeString;
+                        int time = Integer.parseInt(mMachineState.timeElapsed);
+                        if (time > 59) {
+                            int minutes = time / 60;
+                            int seconds = time % 60;
+                            timeString = minutes + "m " + seconds + "s";
+                        } else {
+                            timeString = mMachineState.timeElapsed + "s";
+                        }
+                        if (isManual) {
+                            roastDetails = "IntelliRoast is currently " + mMachineState.roastState + "." +
+                                    "\nTime Elapsed: " + timeString +
+                                    "\nBean Temp: " + mMachineState.beanTemp + " C" +
+                                    "\nSet Temp: " + mMachineState.setTemp + " C" +
+                                    "\nExhaust Air Temp: " + mMachineState.exhaustTemp + " C" +
+                                    "\nInput Air Temp: " + mMachineState.inputTemp + " C" +
+                                    "\nHeating Element Power: " + mMachineState.elementPower + "%" +
+                                    "\nFan Speed: " + mMachineState.fanSpeed + "%";
+                        }
+                    }
+                    break;
+                case constants.MESSAGE_READ:
+                    String message = (String) msg.obj;
+                    Log.d(TAG, message);
+                    break;
+                case constants.MESSAGE_TOAST:
+                    if (null != activity) {
+                        Toast.makeText(activity, msg.getData().getString(constants.TOAST),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                    break;
+            }
+        }
+
+        //toast message function
+        private void showToast(String msg) {
+            Toast.makeText(activity, msg, Toast.LENGTH_LONG).show();
+        }
     }
 
 }
